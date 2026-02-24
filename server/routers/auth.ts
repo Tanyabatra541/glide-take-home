@@ -7,21 +7,7 @@ import { db } from "@/lib/db";
 import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { encryptSSN } from "@/lib/security/ssn";
-
-const commonPasswords = ["password", "12345678", "qwerty"];
-
-const passwordSchema = z
-  .string()
-  .min(8, { message: "Password must be at least 8 characters" })
-  .refine((value) => /\d/.test(value), {
-    message: "Password must contain at least one digit",
-  })
-  .refine((value) => /[^A-Za-z0-9]/.test(value), {
-    message: "Password must contain one special character",
-  })
-  .refine((value) => !commonPasswords.includes(value.toLowerCase()), {
-    message: "Password is too common",
-  });
+import { passwordSchema, dateOfBirthSchema } from "@/lib/validation/user";
 
 export const authRouter = router({
   signup: publicProcedure
@@ -32,7 +18,7 @@ export const authRouter = router({
         firstName: z.string().min(1),
         lastName: z.string().min(1),
         phoneNumber: z.string().regex(/^\+?\d{10,15}$/),
-        dateOfBirth: z.string(),
+        dateOfBirth: dateOfBirthSchema,
         ssn: z.string().regex(/^\d{9}$/),
         address: z.string().min(1),
         city: z.string().min(1),
