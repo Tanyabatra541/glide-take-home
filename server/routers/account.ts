@@ -5,6 +5,10 @@ import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 
+export function normalizeAmount(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 function generateAccountNumber(): string {
   return Math.floor(Math.random() * 1000000000)
     .toString()
@@ -87,7 +91,7 @@ export const accountRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       // Round to 2 decimal places to avoid floating-point drift across many transactions
-      const amount = Math.round(parseFloat(input.amount.toString()) * 100) / 100;
+      const amount = normalizeAmount(parseFloat(input.amount.toString()));
 
       // Verify account belongs to user
       const account = await db
