@@ -72,7 +72,7 @@ describe("PERF-405 - missing transactions in history", () => {
         amount: fundingAmount,
         fundingSource: {
           type: "card",
-          accountNumber: "4111111111111111",
+          accountNumber: "4242424242424242",
           routingNumber: undefined,
         },
       });
