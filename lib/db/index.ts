@@ -4,16 +4,13 @@ import * as schema from "./schema";
 
 const dbPath = "bank.db";
 
+// Use a single shared SQLite connection for the entire app.
+// This avoids creating extra connections that are never closed.
 const sqlite = new Database(dbPath);
 export const db = drizzle(sqlite, { schema });
 
-const connections: Database.Database[] = [];
-
 export function initDb() {
-  const conn = new Database(dbPath);
-  connections.push(conn);
-
-  // Create tables if they don't exist
+  // Create tables if they don't exist using the shared connection
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
