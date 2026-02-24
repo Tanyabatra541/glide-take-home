@@ -29,7 +29,7 @@ describe("SEC-301 - SSN storage", () => {
 
     await caller.auth.signup({
       email,
-      password: "StrongPass123",
+      password: "StrongPass123!",
       firstName: "Sec",
       lastName: "User",
       phoneNumber: "+15555550123",
