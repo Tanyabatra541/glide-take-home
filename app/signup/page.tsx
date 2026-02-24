@@ -107,9 +107,16 @@ export default function SignupPage() {
                   {...register("email", {
                     required: "Email is required",
                     pattern: {
-                      value: /^\S+@\S+$/i,
-                      message: "Invalid email address",
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Enter a valid email address",
                     },
+                    validate: {
+                      notCommonTypo: (value) => {
+                        const domain = value.split("@")[1]?.toLowerCase() || "";
+                        const commonTypos = ["gmail.con", "yahoo.con", "hotmail.con", "gamil.com", "outlook.con"];
+                        return !commonTypos.includes(domain) || "Did you mean .com?";
+                      },
+                    }
                   })}
                   type="email"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"

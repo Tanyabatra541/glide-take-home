@@ -7,13 +7,13 @@ import { db } from "@/lib/db";
 import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { encryptSSN } from "@/lib/security/ssn";
-import { passwordSchema, dateOfBirthSchema } from "@/lib/validation/user";
+import { passwordSchema, dateOfBirthSchema, emailSchema } from "@/lib/validation/user";
 
 export const authRouter = router({
   signup: publicProcedure
     .input(
       z.object({
-        email: z.string().email().toLowerCase(),
+        email: emailSchema,
         password: passwordSchema,
         firstName: z.string().min(1),
         lastName: z.string().min(1),
@@ -27,7 +27,8 @@ export const authRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const existingUser = await db.select().from(users).where(eq(users.email, input.email)).get();
+      const normalizedEmail = input.email.trim().toLowerCase();
+      const existingUser = await db.select().from(users).where(eq(users.email, normalizedEmail)).get();
 
       if (existingUser) {
         throw new TRPCError({
@@ -45,10 +46,11 @@ export const authRouter = router({
         ...rest,
         password: hashedPassword,
         ssn: encryptedSsn,
+        email: normalizedEmail,
       });
 
       // Fetch the created user
-      const user = await db.select().from(users).where(eq(users.email, input.email)).get();
+      const user = await db.select().from(users).where(eq(users.email, normalizedEmail)).get();
 
       if (!user) {
         throw new TRPCError({
