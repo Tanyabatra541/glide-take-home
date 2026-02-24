@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 
 function generateAccountNumber(): string {
   return Math.floor(Math.random() * 1000000000)
@@ -86,7 +86,8 @@ export const accountRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const amount = parseFloat(input.amount.toString());
+      // Round to 2 decimal places to avoid floating-point drift across many transactions
+      const amount = Math.round(parseFloat(input.amount.toString()) * 100) / 100;
 
       // Verify account belongs to user
       const account = await db
@@ -109,7 +110,7 @@ export const accountRouter = router({
         });
       }
 
-      // Create transaction
+      // Create transaction (store rounded amount for consistency)
       await db.insert(transactions).values({
         accountId: input.accountId,
         type: "deposit",
@@ -119,25 +120,34 @@ export const accountRouter = router({
         processedAt: new Date().toISOString(),
       });
 
-      // Fetch the created transaction
-      const transaction = await db.select().from(transactions).orderBy(transactions.createdAt).limit(1).get();
+      // Fetch the created transaction (most recently inserted for this account)
+      const transaction = await db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.accountId, input.accountId))
+        .orderBy(desc(transactions.id))
+        .limit(1)
+        .get();
 
-      // Update account balance
+      // Update balance atomically: SET balance = ROUND(balance + amount, 2)
+      // This prevents lost updates under concurrency and keeps precision to 2 decimals
       await db
         .update(accounts)
         .set({
-          balance: account.balance + amount,
+          balance: sql`ROUND(${accounts.balance} + ${amount}, 2)`,
         })
         .where(eq(accounts.id, input.accountId));
 
-      let finalBalance = account.balance;
-      for (let i = 0; i < 100; i++) {
-        finalBalance = finalBalance + amount / 100;
-      }
+      // Refetch account to return the actual new balance from the database
+      const updatedAccount = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.id, input.accountId))
+        .get();
 
       return {
-        transaction,
-        newBalance: finalBalance, // This will be slightly off due to float precision
+        transaction: transaction ?? undefined,
+        newBalance: updatedAccount?.balance ?? account.balance + amount,
       };
     }),
 
