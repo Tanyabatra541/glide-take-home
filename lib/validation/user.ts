@@ -45,3 +45,21 @@ export const dateOfBirthSchema = z
     message: "You must be at least 18 years old",
   });
 
+  const COMMON_EMAIL_TYPO_TLDS = new Set([
+    "con", 
+    "cmo",
+    "cm",
+    "comm",
+  ]);
+  
+  export const emailSchema = z
+    .string()
+    .trim()
+    .email({ message: "Enter a valid email address" })
+    .transform((v) => v.toLowerCase())
+    .refine((email) => {
+      const domain = email.split("@")[1] ?? "";
+      const tld = domain.split(".").pop() ?? "";
+      return !COMMON_EMAIL_TYPO_TLDS.has(tld);
+    }, { message: "Email domain looks incorrect (did you mean .com?)" });
+
