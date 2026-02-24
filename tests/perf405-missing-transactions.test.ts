@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { appRouter } from "@/server/routers";
 import { db } from "@/lib/db";
@@ -7,7 +7,10 @@ import { users, accounts, transactions, sessions } from "@/lib/db/schema";
 
 describe("PERF-405 - missing transactions in history", () => {
   beforeEach(async () => {
-    // Start each test with a clean slate so prior runs don't affect counts
+    // Start each test with a clean slate so prior runs don't affect counts.
+    // Disable SQLite foreign key enforcement for this synthetic test data
+    // setup to avoid constraint issues from prior runs or partial cleanup.
+    await db.run(sql`PRAGMA foreign_keys = OFF`);
     await db.delete(sessions);
     await db.delete(transactions);
     await db.delete(accounts);
