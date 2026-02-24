@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { trpc } from "@/lib/trpc/client";
+import { isValidCardNumber } from "@/lib/validation/card";
 
 interface FundingModalProps {
   accountId: number;
@@ -122,7 +123,7 @@ export function FundingModal({ accountId, onClose, onSuccess }: FundingModalProp
                 validate: {
                   validCard: (value) => {
                     if (fundingType !== "card") return true;
-                    return value.startsWith("4") || value.startsWith("5") || "Invalid card number";
+                    return isValidCardNumber(value) || "Invalid card number";
                   },
                 },
               })}

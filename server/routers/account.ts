@@ -4,6 +4,7 @@ import { protectedProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
+import { isValidCardNumber } from "@/lib/validation/card";
 
 export function normalizeAmount(value: number): number {
   return Math.round(value * 100) / 100;
@@ -82,11 +83,23 @@ export const accountRouter = router({
       z.object({
         accountId: z.number(),
         amount: z.number().positive(),
-        fundingSource: z.object({
-          type: z.enum(["card", "bank"]),
-          accountNumber: z.string(),
-          routingNumber: z.string().optional(),
-        }),
+        fundingSource: z.discriminatedUnion("type", [
+          z.object({
+            type: z.literal("card"),
+            accountNumber: z
+              .string()
+              .regex(/^\d{16}$/, { message: "Card number must be 16 digits" })
+              .refine((value) => isValidCardNumber(value), {
+                message: "Invalid card number",
+              }),
+            routingNumber: z.string().optional(),
+          }),
+          z.object({
+            type: z.literal("bank"),
+            accountNumber: z.string(),
+            routingNumber: z.string().optional(),
+          }),
+        ]),
       })
     )
     .mutation(async ({ input, ctx }) => {
